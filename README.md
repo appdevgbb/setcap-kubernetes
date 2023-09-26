@@ -4,9 +4,9 @@ This is an exploratory repo with information on how to use Linux capabilities(7)
 
 ## What we know
 
-1. After Kubernetes 1.21 it looks like (Capabilities(7))[https://man7.org/linux/man-pages/man7/capabilities.7.html] will only work when `runAsUser` is set to `0` - meaning, `root`. 
+1. After Kubernetes 1.21 it looks like [Capabilities(7)](https://man7.org/linux/man-pages/man7/capabilities.7.html) will only work when `runAsUser` is set to `0` - meaning, `root`. 
 
-this is the (code)[https://github.com/containerd/containerd/blob/main/pkg/cri/server/container_create_linux.go#L260-L267] that prevents any user other than `root` to have capabilities. This was added by the commit referenced (here)[https://github.com/containerd/containerd/commit/50c73e6dc550c2cdb579e303ac26394497f9f331]:
+this is the [code](https://github.com/containerd/containerd/blob/main/pkg/cri/server/container_create_linux.go#L260-L267) that prevents any user other than `root` to have capabilities. This was added by the commit referenced [here](https://github.com/containerd/containerd/commit/50c73e6dc550c2cdb579e303ac26394497f9f331):
 
 ```golang
 	// Clear all ambient capabilities. The implication of non-root + caps
@@ -57,17 +57,24 @@ spec:
 
 In the example above we will be granting `cap_ipc_lock` to the running user (root) and nothing else.
 
-### 1. Adding capabilities to binaries during the build process
+### 2. Adding capabilities to binaries during the build process
 
-It is possible to add capabilities during the build process with docker/podman. The capabilities added there will persist when the image runs as a container.
+It is possible to add capabilities during the build process with docker/podman. With this approach you can remove the `RunAsUser` parameter altogether. The capabilities added there will persist when the image runs as a container. The following example adds `cap_ipc_lock` to python3.8
 
 ```Dockerfile
 FROM ubuntu
 
 RUN apt-get update && apt-get install -y libcap2-bin && \
-    setcap cap_ipc_lock+eip /usr/bin/bash
+    setcap cap_ipc_lock+eip /usr/bin/python3.8
 
 CMD ["/bin/bash"]
+```
+
+We can verify that the capability was added by running the `getcap` command against a binary, which in this case is `python3.8`:
+
+```bash
+$ getcap /usr/bin/python3.8
+/usr/bin/python3.8 = cap_ipc_lock+eip
 ```
 
 ## References:
